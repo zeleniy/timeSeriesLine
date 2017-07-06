@@ -19,7 +19,6 @@ d3.json('data/sample.json', function(error, data) {
 function getNextDataSet(dataPoint, i) {
 
     dataPoint = JSON.parse(JSON.stringify(dataPoint));
-    var date = new Date(dataPoint.date);
 
     dataPoint.date = moment(new Date(dataPoint.date)).add(1, 'h').format('MMM D, YYYY HH:mm');
     dataPoint.price = Math.random() - 0.5;
