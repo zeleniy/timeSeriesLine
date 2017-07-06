@@ -75,7 +75,7 @@ class LineChart {
             .attr('height', this._getInnerHeight());
 
         this._xAxisContainer
-            .attr('transform', 'translate(' + [0, this._getInnerHeight()] + ')')
+            .attr('transform', 'translate(' + [0, this._getXAxisYOffset()] + ')')
             .call(d3.axisBottom(this._getXScale()));
 
         this._yAxisContainer
@@ -123,10 +123,29 @@ class LineChart {
             .ease(d3.easeLinear)
             .attr('transform', 'translate(' + (this._xOffset) + ',0)');
 
+        this._xAxisContainer
+            .transition()
+            .duration(duration)
+            .ease(d3.easeLinear)
+            .attr('transform', 'translate(' + [0, this._getXAxisYOffset()] + ')')
+
         data.forEach(function(d) {
             d.date = new Date(d.date);
             this._data.shift();
         }, this);
+    }
+
+
+    _getXAxisYOffset() {
+
+        const yScale = this._getYScale();
+        const minPrice = d3.min(this._data, d => d.price);
+
+        if (minPrice < 0) {
+            return yScale(0);
+        } else {
+            return this._getInnerHeight();
+        }
     }
 
 
