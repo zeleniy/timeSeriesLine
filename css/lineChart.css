@@ -1,0 +1,10 @@
+svg.line-chart {
+    display: block;
+    background-color: lightgrey;
+}
+
+svg.line-chart .line {
+    fill: none;
+    stroke-width: 2px;
+    stroke: steelblue;
+}
