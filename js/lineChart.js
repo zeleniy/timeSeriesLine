@@ -1,13 +1,15 @@
 class LineChart {
 
 
-    constructor(data) {
+    constructor(data = []) {
 
         this._data = data.map(function(d) {
             d.date = new Date(d.date);
             return d;
         });
 
+        this._isFull = false;
+        this._capacity = data.length || 5;
         this._duration = 1000;
         this._xOffset = 0;
         this._margin = {
@@ -16,6 +18,13 @@ class LineChart {
             right: 20,
             bottom: 25
         };
+    }
+
+
+    setCapacity(capacity) {
+
+        this._capacity = capacity;
+        return this;
     }
 
 
@@ -93,16 +102,32 @@ class LineChart {
     update(data) {
 
         var xScale = this._getXScale().copy();
-        var x1 = xScale(this._data[this._data.length - 1].date);
-        var x2 = xScale(this._data[this._data.length - 2].date);
 
-        this._xOffset += (x2 - x1) * data.length;
-        var duration = this._duration * data.length;
+        if (this._data.length < this._capacity) {
+            this._xOffset = 0;
+        } else {
+
+            if (! this._isFull) {
+                this._originalXScale = xScale.copy();
+                this._isFull = true;
+            }
+
+            var x1 = xScale(this._data[this._data.length - 1].date);
+            var x2 = xScale(this._data[this._data.length - 2].date);
+
+            this._xOffset += (x2 - x1) * data.length;
+        }
 
         data.forEach(function(d) {
             d.date = new Date(d.date);
             this._data.push(d);
         }, this);
+
+        var duration = this._duration * data.length;
+
+        if (this._data.length <= 1) {
+            return;
+        }
 
         this._xAxisContainer
             .transition()
@@ -116,32 +141,39 @@ class LineChart {
             .ease(d3.easeLinear)
             .call(d3.axisLeft(this._getYScale()));
 
-        this._path
-            .attr('d', this._getLineGenerator(xScale))
-            .transition()
-            .duration(duration)
-            .ease(d3.easeLinear)
-            .attr('transform', 'translate(' + (this._xOffset) + ',0)');
+        if (this._data.length <= this._capacity) {
+            this._path
+                .transition()
+                .duration(duration)
+                .ease(d3.easeLinear)
+                .attr('d', this._getLineGenerator())
+        } else {
+            this._path
+                .attr('d', this._getLineGenerator())
+                .transition()
+                .duration(duration)
+                .ease(d3.easeLinear)
+                .attr('transform', 'translate(' + (this._xOffset) + ', 0)');
+        }
 
         this._xAxisContainer
             .transition()
             .duration(duration)
             .ease(d3.easeLinear)
-            .attr('transform', 'translate(' + [0, this._getXAxisYOffset()] + ')')
+            .attr('transform', 'translate(' + [0, this._getXAxisYOffset()] + ')');
 
-        data.forEach(function(d) {
-            d.date = new Date(d.date);
+        while (this._capacity < this._data.length) {
             this._data.shift();
-        }, this);
+        }
     }
 
 
     _getXAxisYOffset() {
 
         const yScale = this._getYScale();
-        const minPrice = d3.min(this._data, d => d.price);
+        const extent = d3.extent(this._data, d => d.price);
 
-        if (minPrice < 0) {
+        if (extent[0] < 0 && extent[1] > 0) {
             return yScale(0);
         } else {
             return this._getInnerHeight();
@@ -149,9 +181,15 @@ class LineChart {
     }
 
 
-    _getLineGenerator(xScale) {
+    _getLineGenerator() {
 
-        var xScale = this._originalXScale;
+        var xScale;
+        if (this._data.length <= this._capacity) {
+            xScale = this._getXScale();
+        } else {
+            xScale = this._originalXScale;
+        }
+
         var yScale = this._getYScale();
 
         return d3.line()

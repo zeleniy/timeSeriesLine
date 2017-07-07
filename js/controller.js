@@ -4,10 +4,17 @@ d3.json('data/sample.json', function(error, data) {
         console.error(error);
     }
 
-    var chart = new LineChart(JSON.parse(JSON.stringify(data)))
+    // var chart = new LineChart(JSON.parse(JSON.stringify(data)))
+    var chart = new LineChart()
+        .setCapacity(10)
         .renderTo('#lineChart');
 
     var dataPoint = data[data.length - 1];
+
+    dataPoint = getNextDataSet(dataPoint);
+    chart.update([dataPoint])
+    dataPoint = getNextDataSet(dataPoint);
+    chart.update([dataPoint])
 
     setInterval(function() {
         dataPoint = getNextDataSet(dataPoint);
