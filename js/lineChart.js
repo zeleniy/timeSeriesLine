@@ -100,47 +100,78 @@ class LineChart {
 
 
     update(data) {
-
+        /*
+         * Get copy of previously used xScale.
+         */
         var xScale = this._getXScale().copy();
-
+        /*
+         * Caclulate line offset depending on capacity.
+         */
         if (this._data.length < this._capacity) {
             this._xOffset = 0;
         } else {
-
+            /*
+             * After inner data array will be fulled we
+             * should use lastly used x scale function.
+             */
             if (! this._isFull) {
                 this._originalXScale = xScale.copy();
                 this._isFull = true;
             }
-
+            /*
+             * Get x coordinates of two last points.
+             */
             var x1 = xScale(this._data[this._data.length - 1].date);
             var x2 = xScale(this._data[this._data.length - 2].date);
-
+            /*
+             * Calculate distance between them and multiply on input array size.
+             */
             this._xOffset += (x2 - x1) * data.length;
         }
-
+        /*
+         * Push input into data array.
+         */
         data.forEach(function(d) {
             d.date = new Date(d.date);
             this._data.push(d);
         }, this);
-
+        /*
+         * Calculate animation duration time.
+         */
         var duration = this._duration * data.length;
-
+        /*
+         * Inner data array should to have at least two points to draw a line.
+         */
         if (this._data.length <= 1) {
             return;
         }
-
+        /*
+         * Try to shift x axis to Y's zero value.
+         */
+        this._xAxisContainer
+            .transition()
+            .duration(duration)
+            .ease(d3.easeLinear)
+            .attr('transform', 'translate(' + [0, this._getXAxisYOffset()] + ')');
+        /*
+         * Update x axis.
+         */
         this._xAxisContainer
             .transition()
             .duration(duration)
             .ease(d3.easeLinear)
             .call(d3.axisBottom(this._getXScale()));
-
+        /*
+         * Update y axis.
+         */
         this._yAxisContainer
             .transition()
             .duration(duration)
             .ease(d3.easeLinear)
             .call(d3.axisLeft(this._getYScale()));
-
+        /*
+         * Depending on data size transform line itself or just slide it to the left.
+         */
         if (this._data.length <= this._capacity) {
             this._path
                 .transition()
@@ -156,18 +187,17 @@ class LineChart {
                 .attr('transform', 'translate(' + (this._xOffset) + ', 0)');
         }
 
-        this._xAxisContainer
-            .transition()
-            .duration(duration)
-            .ease(d3.easeLinear)
-            .attr('transform', 'translate(' + [0, this._getXAxisYOffset()] + ')');
-
         while (this._capacity < this._data.length) {
             this._data.shift();
         }
     }
 
 
+    /**
+     * Get x axis y offset.
+     * X axis should be aligned by Y's zero value. If zero value not present
+     * in Y rabge X axis will be in the bottom of the chart.
+     */
     _getXAxisYOffset() {
 
         const yScale = this._getYScale();
